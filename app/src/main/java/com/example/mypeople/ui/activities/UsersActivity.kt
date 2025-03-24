@@ -169,14 +169,14 @@ fun fetchUsers(context: Context, users: List<UserData>, onUsersFetched: (List<Us
                     }
                 } else {
                     Toast.makeText(context, "Error while loading users", Toast.LENGTH_SHORT).show()
-                    onUsersFetched(updatedUsers)  // Call even in case of error
+                    onUsersFetched(updatedUsers)
                 }
             }
 
             override fun onFailure(call: Call<UserResponse>, t: Throwable) {
                 Log.d("USERS", "ERROR: ${t.message ?: "ERROR UNAVAILABLE"}")
                 Toast.makeText(context, "Connection error: ${t.message ?: "Unknown"}", Toast.LENGTH_SHORT).show()
-                onUsersFetched(updatedUsers)  // Call even if there's an error
+                onUsersFetched(updatedUsers)
             }
         })
     }

@@ -181,8 +181,6 @@ fun loginUser(context: Context, email: String, password: String) {
         }
 
         override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-
-            // Si ocurre un fallo en la solicitud (por ejemplo, error de conexión)
             Log.d("ERROR", "THE ERROR IS $t")
             Toast.makeText(context, "Connection error $t. Try again", Toast.LENGTH_SHORT).show()
         }
