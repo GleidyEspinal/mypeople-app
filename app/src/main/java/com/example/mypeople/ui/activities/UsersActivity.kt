@@ -1,4 +1,4 @@
-package com.example.mypeople.ui.userlist
+package com.example.mypeople.ui.activities
 
 import android.content.Context
 import android.os.Bundle
@@ -7,52 +7,27 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonColors
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.mypeople.data.api.RetrofitClient
 import com.example.mypeople.data.model.UserData
 import com.example.mypeople.data.model.UserResponse
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.example.mypeople.ui.theme.*
+import retrofit2.*
 
 
 class UsersActivity : ComponentActivity() {
@@ -110,9 +85,6 @@ fun LoadingScreen() {
 fun UserSearch(searchQuery: String, onQueryChanged: (String) -> Unit) {
 
     val keyboardController = LocalSoftwareKeyboardController.current
-    val greyColor = androidx.compose.ui.graphics.Color.Gray
-    val primaryColor = androidx.compose.ui.graphics.Color(0xFFFF4081)
-    val contentColor = Color.White
 
     Row(modifier = Modifier.fillMaxWidth()) {
         val focusManager = LocalFocusManager.current
@@ -135,7 +107,7 @@ fun UserSearch(searchQuery: String, onQueryChanged: (String) -> Unit) {
                 onQueryChanged(searchQuery)
             },
             modifier = Modifier.align(Alignment.CenterVertically),
-            colors = IconButtonColors(primaryColor, contentColor, greyColor, greyColor)
+            colors = IconButtonColors(primaryColor, contentColor, tertiaryColor, contentColor)
         ) {
             Icon(Icons.Outlined.Search, contentDescription = "Search")
         }
@@ -177,35 +149,41 @@ fun UserItem(user: UserData) {
 }
 fun fetchUsers(context: Context, users: List<UserData>, onUsersFetched: (List<UserData>) -> Unit) {
     var updatedUsers = users.toMutableList()
+    var currentPage = 1
 
-    // Realizar dos solicitudes, por ejemplo, para obtener dos páginas de resultados
-    for (i in 1..2) {
-        RetrofitClient.instance.getUsers(i).enqueue(object : Callback<UserResponse> {
+    // Recursive function to fetch users page by page
+    fun fetchPage(page: Int) {
+        RetrofitClient.instance.getUsers(page).enqueue(object : Callback<UserResponse> {
             override fun onResponse(call: Call<UserResponse>, response: Response<UserResponse>) {
                 if (response.isSuccessful) {
-                    updatedUsers.addAll(response.body()?.data ?: emptyList())
-                    if (i == 2) {
+                    val userData = response.body()?.data ?: emptyList()
+                    updatedUsers.addAll(userData)
+
+                    val totalPages = response.body()?.total_pages ?: 0
+
+                    // Check if there are more pages to fetch
+                    if (page < totalPages) {
+                        fetchPage(page + 1)
+                    } else {
                         onUsersFetched(updatedUsers)
                     }
                 } else {
-                    Toast.makeText(context, "Error al cargar usuarios", Toast.LENGTH_SHORT).show()
-                    if (i == 2) {
-                        onUsersFetched(updatedUsers)
-                    }
+                    Toast.makeText(context, "Error while loading users", Toast.LENGTH_SHORT).show()
+                    onUsersFetched(updatedUsers)  // Call even in case of error
                 }
             }
 
             override fun onFailure(call: Call<UserResponse>, t: Throwable) {
-                Log.d("USERS", "ERROR: ${t.message ?: "Mensaje de error no disponible"}")
-                Toast.makeText(context, "Error de conexión: ${t.message ?: "Desconocido"}", Toast.LENGTH_SHORT).show()
-                if (i == 2) {
-                    onUsersFetched(updatedUsers)
-                }
+                Log.d("USERS", "ERROR: ${t.message ?: "ERROR UNAVAILABLE"}")
+                Toast.makeText(context, "Connection error: ${t.message ?: "Unknown"}", Toast.LENGTH_SHORT).show()
+                onUsersFetched(updatedUsers)  // Call even if there's an error
             }
         })
     }
-}
 
+    // Stars with the first page
+    fetchPage(currentPage)
+}
 
 
 @Preview(showBackground = true)
